@@ -1,0 +1,266 @@
+<!-- include the code from partials (banner with nav) -->
+<%- include("partials/header.ejs") %>
+</main>
+<body class="profilePage">
+    <div class="profile">
+        <br><br><br>
+        <div class="profileContainer">
+            <h1><%= user.name %>’s Profile</h1>
+
+            <div class="profileInfo">
+                <h3>User ID: <%= user.user_id %></h3>
+            </div>
+        
+            <!-- dynamically show collections -->
+            <section class="collection-section">
+            <div class="collection-wrapper">
+                <h2>Collections</h2>
+                
+                <% if (collections.length === 0) { %>
+                <p>No collections yet.</p>
+                <% } else { %>
+                <% collections.forEach(c => { %>
+                    <div class="collection">
+                    <h4><%= c.name %></h4>
+                    
+                    <% if (!c.recipe_ids || c.recipe_ids.length === 0) { %>
+                        <p>No recipes in this collection yet.</p>
+                    <% } else { %>
+                        <ul>
+                        <% 
+                            c.recipe_ids.forEach(id => {
+                            const recipe = [...saved, ...submitted].find(r => r.recipe_id === id);
+                            if (recipe) { 
+                        %>
+                            <li><strong><%= recipe.title %></strong> by <%= recipe.creator_name %></li>
+                        <% 
+                            } else { 
+                        %>
+                            <li>Recipe ID <%= id %> (not found)</li>
+                        <% 
+                            } 
+                            });
+                        %>
+                        </ul>
+                    <% } %>
+                    </div>
+                <% }) %>
+                <% } %>
+
+                
+                <!-- add collection with name -->
+                <br><form action="/addCollection" method="POST" class="addCollectionForm">
+                <input type="text" name="name" placeholder="New Collection Name" required>
+                <button type="submit" class="saveBtn">Add</button>
+                </form>
+            </div>
+            </section>
+
+            <!-- dynamically show saved recipes -->
+            <!-- or show no recipes yet message -->
+            <!-- use formatting from index.ejs when clicked -->
+            <section class="saved-section">
+            <h2>Saved Recipes</h2>
+            <% if (saved.length === 0) { %>
+                <p>No saved recipes yet.</p>
+            <% } else { %>
+                <div class="recipeList">
+                <% saved.forEach(recipe => { %>
+                    <div class="recipeBubble" data-recipe-id="<%= recipe.recipe_id %>">
+                    <span><%= recipe.title %></span>
+                    </div>
+                    <div class="recipeDetails hidden" id="saved-<%= recipe.recipe_id %>">
+                    <div class="postBox">
+                        <div class="topRow">
+                        <% 
+                            const d = new Date(recipe.time_updated);
+                            const formatted = d.toLocaleString('en-US', { 
+                            weekday: 'short', month: 'short', day: '2-digit', year: 'numeric', 
+                            hour: '2-digit', minute: '2-digit', hour12: false 
+                            }).replace(',', '');
+                        %>
+                        <p>Date: <%= formatted %></p><br>
+                        </div>
+
+                        <p class="name"><strong><%= recipe.creator_name %></strong></p>
+                        <h3 class="title"><%= recipe.title %></h3>
+
+                        <% if (recipe.image_path) { %>
+                        <img src="<%= recipe.image_path %>" alt="Recipe image" class="postImage">
+                        <% } %>
+
+                        <% if (recipe.ingredients && recipe.ingredients.trim() !== "") { %>
+                        <div class="ingredientsBlock">
+                            <h4>Ingredients</h4>
+                            <ul>
+                            <% recipe.ingredients.split('\n').forEach(line => { %>
+                                <li><%= line.trim() %></li>
+                            <% }); %>
+                            </ul>
+                        </div>
+                        <% } %>
+
+                        <% if (recipe.body) { %>
+                        <div class="instructionsBlock">
+                            <h4>Instructions</h4>
+                            <p><%= recipe.body %></p>
+                        </div>
+                        <% } %>
+
+                        <div class="metaInfo">
+                        <% if (recipe.tag) { %>
+                            <span class="tag"><%= recipe.tag %></span>
+                        <% } %>
+                        <% if (recipe.cuisinetag) { %>
+                            <span class="tag"><%= recipe.cuisinetag %></span>
+                        <% } %>
+                        <% if (recipe.mealtype) { %>
+                            <span class="tag"><%= recipe.mealtype %></span>
+                        <% } %>
+                        </div>
+
+                        <div class="statsRow">
+                        <p>Cook Time: <%= recipe.cook_time %> min</p>
+                        <p>Difficulty: <%= recipe.difficulty %> / 5</p>
+                        </div>
+
+                        <% if (recipe.notes) { %>
+                        <div class="notes">
+                            <h4>Notes</h4>
+                            <p><%= recipe.notes %></p>
+                        </div>
+                        <% } %>
+
+                        <!-- Add to Collection Dropdown -->
+                        <% if (collections.length > 0) { %>
+                        <form action="/addToCollection" method="POST" class="addToCollectionForm">
+                            <input type="hidden" name="recipe_id" value="<%= recipe.recipe_id %>">
+                            <label for="collection">Add to collection:</label>
+                            <select name="collection_id" required>
+                            <% collections.forEach(collection => { %>
+                                <option value="<%= collection.id %>"><%= collection.name %></option>
+                            <% }); %>
+                            </select>
+                            <button type="submit" class="saveBtn">Add</button>
+                        </form>
+                        <% } %>
+
+                    </div>
+                    </div>
+                <% }) %>
+                </div>
+            <% } %>
+            </section>
+
+            <!-- dynamically show submitted recipes -->
+            <!-- or show no recipes yet message -->
+            <!-- use formatting from index.ejs when clicked -->
+            <section class="submitted-section">
+            <h2>My Recipes</h2>
+            <% if (submitted.length === 0) { %>
+                <p>No submitted recipes yet.</p>
+            <% } else { %>
+                <div class="recipeList">
+                <% submitted.forEach(recipe => { %>
+                    <div class="recipeBubble" data-recipe-id="<%= recipe.recipe_id %>">
+                    <span><%= recipe.title %></span>
+                    </div>
+                    <div class="recipeDetails hidden" id="submitted-<%= recipe.recipe_id %>">
+                    <div class="postBox">
+                        <div class="topRow">
+                        <% 
+                            const d = new Date(recipe.time_updated);
+                            const formatted = d.toLocaleString('en-US', { 
+                            weekday: 'short', month: 'short', day: '2-digit', year: 'numeric', 
+                            hour: '2-digit', minute: '2-digit', hour12: false 
+                            }).replace(',', '');
+                        %>
+                        <p>Date: <%= formatted %></p><br>
+                        </div>
+
+                        <p class="name"><strong><%= recipe.creator_name %></strong></p>
+                        <h3 class="title"><%= recipe.title %></h3>
+
+                        <% if (recipe.image_path) { %>
+                        <img src="<%= recipe.image_path %>" alt="Recipe image" class="postImage">
+                        <% } %>
+
+                        <% if (recipe.ingredients && recipe.ingredients.trim() !== "") { %>
+                        <div class="ingredientsBlock">
+                            <h4>Ingredients</h4>
+                            <ul>
+                            <% recipe.ingredients.split('\n').forEach(line => { %>
+                                <li><%= line.trim() %></li>
+                            <% }); %>
+                            </ul>
+                        </div>
+                        <% } %>
+
+                        <% if (recipe.body) { %>
+                        <div class="instructionsBlock">
+                            <h4>Instructions</h4>
+                            <p><%= recipe.body %></p>
+                        </div>
+                        <% } %>
+
+                        <div class="metaInfo">
+                        <% if (recipe.tag) { %>
+                            <span class="tag"><%= recipe.tag %></span>
+                        <% } %>
+                        <% if (recipe.cuisinetag) { %>
+                            <span class="tag"><%= recipe.cuisinetag %></span>
+                        <% } %>
+                        <% if (recipe.mealtype) { %>
+                            <span class="tag"><%= recipe.mealtype %></span>
+                        <% } %>
+                        </div>
+
+                        <div class="statsRow">
+                        <p>Cook Time: <%= recipe.cook_time %> min</p>
+                        <p>Difficulty: <%= recipe.difficulty %> / 5</p>
+                        </div>
+
+                        <% if (recipe.notes) { %>
+                        <div class="notes">
+                            <h4>Notes</h4>
+                            <p><%= recipe.notes %></p>
+                        </div>
+                        <% } %>
+
+                        <!-- Add to Collection Dropdown -->
+                        <% if (collections.length > 0) { %>
+                        <form action="/addToCollection" method="POST" class="addToCollectionForm">
+                            <input type="hidden" name="recipe_id" value="<%= recipe.recipe_id %>">
+                            <label for="collection">Add to collection:</label>
+                            <select name="collection_id" required>
+                            <% collections.forEach(collection => { %>
+                                <option value="<%= collection.id %>"><%= collection.name %></option>
+                            <% }); %>
+                            </select>
+                            <button type="submit" class="saveBtn">Add</button>
+                        </form>
+                        <% } %>
+                                    
+                    </div>
+                    </div>
+                <% }) %>
+                </div>
+            <% } %>
+            </section>
+            <!-- toggle showing recipe or not when the user clicks on it -->
+            <script>
+            document.querySelectorAll(".recipeBubble").forEach(bubble => {
+                bubble.addEventListener("click", () => {
+                    const parentSection = bubble.closest("section");
+                    const idPrefix = parentSection.classList.contains("saved-section") ? "saved-" : "submitted-";
+                    const id = idPrefix + bubble.dataset.recipeId;
+                    const details = document.getElementById(id);
+                    details.classList.toggle("hidden");
+                });
+            });
+            </script>
+
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!-- include the code from partials (banner with nav) -->
+<%- include("partials/header.ejs") %>
+
+<body>
+    <h1 class="makeAPost">Register</h1>
+    <!-- Log in form -->
+    <div class="formsDiv">
+        <!-- If they triggered user id in use -->
+        <% if (error) { %>
+            <p><%= error %></p>
+        <% } %>
+        <form action="/register" method="POST">
+            <!-- Get name -->
+            <label for="username">Name</label><br>
+            <input type="text" id="username" name="username" required><br><br>
+            <!-- Get password -->
+            <label for="password">Password</label><br>
+            <input type="password" id="password" name="password" required><br><br>
+            <!-- Get user id -->
+            <label for="user_id">User ID</label><br>
+            <input type="text" id="user_id" name="user_id" required><br><br>
+        <!-- Submit -->    
+        <input class="formSubmit" type="submit" value="Register">
+
+    </form>
+    </div>
+</body>
+</main>
+</html>

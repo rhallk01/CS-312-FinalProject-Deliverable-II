@@ -1,0 +1,96 @@
+<!-- include the code from partials (banner with nav) -->
+<%- include("partials/header.ejs") %>
+
+<body>   
+<!-- Recipe Posts -->
+<h1 class="makeAPost">Recipe Posts</h1>
+    <div class="RecipePostDiv">
+
+        <% if (locals.allPosts.length === 0) { %>
+            <h2>Be the first to post!</h2>
+        <% } %>
+
+        <% if (locals.allPosts) { for (let i = 0; i < allPosts.length; i++) { %>
+            <div class="postBox">
+            <!-- top row: date, save -->
+            <div class="topRow">
+                <% 
+                    const d = new Date(allPosts[i].time);
+                    const formatted = d.toLocaleString('en-US', { 
+                        weekday: 'short', month: 'short', day: '2-digit', year: 'numeric', 
+                        hour: '2-digit', minute: '2-digit', hour12: false 
+                        }).replace(',', '');
+            %>
+            <p class="date"><%= formatted %></p><br>
+
+            <div class="buttonGroup">
+                <% if (locals.currentUserId) { %>
+                    <form action="/saveRecipe" method="POST">
+                        <input type="hidden" name="recipeId" value="<%= allPosts[i].id %>">
+                        <button type="submit" id="deletebtn">Save Recipe</button>
+                    </form>
+                <% } %>
+            </div>
+            </div>
+
+            <!-- Creator and Title -->
+            <p class="name"><strong><%= allPosts[i].name %></strong></p>
+            <h3 class="title"><%= allPosts[i].title %></h3>
+
+            <!-- Image -->
+            <% if (allPosts[i].image_path) { %>
+            <img src="<%= allPosts[i].image_path %>" alt="Post image" class="postImage">
+            <% } %>
+
+            <!-- Ingredients -->
+            <% if (allPosts[i].ingredients && allPosts[i].ingredients.trim() !== "") { %>
+            <div class="ingredientsBlock">
+                <h4>Ingredients</h4>
+                <ul>
+                <% allPosts[i].ingredients.split('\n').forEach(function(line) { %>
+                    <li><%= line.trim() %></li>
+                <% }); %>
+                </ul>
+            </div>
+            <% } %>
+
+            <!-- Instructions / Content -->
+            <% if (allPosts[i].content) { %>
+            <div class="instructionsBlock">
+                <h4>Instructions</h4>
+                <p><%= allPosts[i].content %></p>
+            </div>
+            <% } %>
+
+            <!-- Tags and Extra Info -->
+            <div class="metaInfo">
+            <% if (allPosts[i].tag) { %>
+                <span class="tag"><%= allPosts[i].tag %></span>
+            <% } %>
+            <% if (allPosts[i].cuisineTag) { %>
+                <span class="tag"><%= allPosts[i].cuisineTag %></span>
+            <% } %>
+            <% if (allPosts[i].mealType) { %>
+                <span class="tag"><%= allPosts[i].mealType %></span>
+            <% } %>
+            </div>
+
+            <!-- Stats -->
+            <div class="statsRow">
+            <p>Cook Time: <%= allPosts[i].cook_time %> min</p>
+            <p>Difficulty: <%= allPosts[i].difficulty %> / 5</p>
+            </div>
+
+            <!-- Notes -->
+            <% if (allPosts[i].notes && allPosts[i].notes.trim() !== "") { %>
+            <div class="notes">
+                <h4>Notes</h4>
+                <p><%= allPosts[i].notes %></p>
+            </div>
+            <% } %>
+        </div>
+        <% } } %>
+    </div>
+</body>
+</main>
+</html>

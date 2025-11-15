@@ -1,0 +1,66 @@
+<!-- add all the stuff that should be on every page (banner, beginning html stuff) -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- connect to the css -->
+  <link rel="stylesheet" href="/styles/main.css">
+  <title>Recipe Forum</title>
+</head>
+
+<!-- banner at the top of all of the pages -->
+<div id="titleBanner">
+<h1>Recipe Forum</h1>
+<nav>
+    <!-- home and new post buttons -->
+    <a href="/">Home</a>
+    <a href="/form">New Post</a>
+    <!-- register and login buttons -->
+    <a href="/register">Register</a>
+    <a href="/login">Login</a>
+    <!-- profile button -->
+    <a href="/profile">Profile</a>
+    <!-- if on the home page, put the tags dropdown in the banner -->
+    <!-- the if statement checks whether a variable called currentPage was passed-->
+    <% if (locals.currentPage) { %>
+        <form action="/tagSort" method="POST" class="filterForm">
+        <div class="dropdown">
+            <label for="tag">Dietary Tag:</label>
+            <select name="tag" id="tag">
+            <option value="all">All</option>
+            <% tags.forEach(function(tag) { %>
+                <option value="<%= tag %>"><%= tag %></option>
+            <% }) %>
+            </select>
+        </div>
+
+        <div class="dropdown">
+            <label for="cuisineTag">Cuisine:</label>
+            <select name="cuisineTag" id="cuisineTag">
+            <option value="all">All</option>
+            <% cuisineTypeTags.forEach(function(cuisineTag) { %>
+                <option value="<%= cuisineTag %>"><%= cuisineTag %></option>
+            <% }) %>
+            </select>
+        </div>
+
+        <div class="dropdown">
+            <label for="mealType">Meal Type:</label>
+            <select name="mealType" id="mealType">
+            <option value="all">All</option>
+            <% mealTypeTags.forEach(function(mealTag) { %>
+                <option value="<%= mealTag %>"><%= mealTag %></option>
+            <% }) %>
+            </select>
+        </div>
+
+        <input class="selectorSubmit" type="submit" value="Filter">
+        </form>
+    <% } %>
+
+</nav>
+</div>
+
+<main>
