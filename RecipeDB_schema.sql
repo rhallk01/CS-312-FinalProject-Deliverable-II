@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS public.recipes
     cuisinetag text COLLATE pg_catalog."default",
     mealtype text COLLATE pg_catalog."default",
     notes text COLLATE pg_catalog."default",
+    avg_rating FLOAT DEFAULT 0,
+    num_reviews INT DEFAULT 0,
     CONSTRAINT recipes_pkey PRIMARY KEY (recipe_id)
 );
 
@@ -36,4 +38,13 @@ CREATE TABLE IF NOT EXISTS public.users
     saved_recipes integer[] DEFAULT '{}'::integer[],
     submitted_recipes integer[] DEFAULT '{}'::integer[],
     CONSTRAINT users_pkey PRIMARY KEY (user_id)
+);
+
+CREATE TABLE IF NOT EXISTS recipe_ratings (
+    id SERIAL PRIMARY KEY,
+    recipe_id INT REFERENCES recipes(recipe_id) ON DELETE CASCADE,
+    user_id TEXT REFERENCES users(user_id),
+    rating INT CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    date_created TIMESTAMP DEFAULT NOW()
 );
