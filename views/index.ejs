@@ -82,26 +82,39 @@
             <p>Difficulty: <%= allPosts[i].difficulty %> / 5</p>
             </div>
 
-            <!-- Notes -->
+            <!-- notes -->
             <% if (allPosts[i].notes && allPosts[i].notes.trim() !== "") { %>
             <div class="notes">
                 <h4>Notes</h4>
                 <p><%= allPosts[i].notes %></p>
             </div>
 
+            <!-- stats -->
             <div class="statsRow">
                 <p>Cook Time: <%= allPosts[i].cook_time %> min</p>
                 <p>Difficulty: <%= allPosts[i].difficulty %> / 5</p>
 
                 <% if (allPosts[i].avg_rating) { %>
-                    <p>Rating: <%= allPosts[i].avg_rating.toFixed(1) %>
+                    <p>Rating: <%= allPosts[i].avg_rating.toFixed(1) %>★
                     (<%= allPosts[i].num_reviews %> reviews)</p>
                 <% } else { %>
                     <p>No ratings yet</p>
                 <% } %>
             </div>
 
+            <!-- comments -->
+            <% if (allPosts[i].comments && allPosts[i].comments.length > 0) { %>
+                <div class="commentSection">
+                    <h4>Comments</h4>
+                        <% allPosts[i].comments.forEach(c => { 
+                            if (c.comment && c.comment.trim() !== "") { %>
+                                <p><strong><%= c.user_id %></strong>: <%= c.comment %> (<%= c.rating %>★)</p>
+                        <%  }
+                    }); %>
+                </div>
+            <% } %>
             <br>
+            <!-- rating form -->
             <% if (currentUserId) { %>
             <form action="/rateRecipe" method="POST" class="ratingForm">
                 <input type="hidden" name="recipe_id" value="<%= allPosts[i].id %>">
@@ -118,15 +131,6 @@
 
                 <button type="submit" class="saveBtn">Submit Rating</button>
             </form>
-            <% } %>
-
-            <% if (allPosts[i].comments && allPosts[i].comments.length > 0) { %>
-            <div class="commentSection">
-                <h4>Comments</h4>
-                <% allPosts[i].comments.forEach(c => { %>
-                <p><strong><%= c.user_id %></strong>: <%= c.comment %> (<%= c.rating %>)</p><br>
-                <% }) %>
-            </div>
             <% } %>
 
             <% } %>

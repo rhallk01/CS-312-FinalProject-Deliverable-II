@@ -435,3 +435,32 @@ hr {
   background: #eee;
 }
 
+.commentSection {
+  text-align: left;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #f3efdf;
+  border-left: 4px solid #5F6F65;
+  border-radius: 6px;
+  box-shadow:
+    inset 2px 2px 4px rgba(0, 0, 0, 0.1),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.5);
+}
+
+.commentSection h4 {
+  margin-bottom: 0.5rem;
+  color: #5F6F65;
+  font-size: 1.1rem;
+  text-decoration: underline;
+}
+
+.commentSection p {
+  margin: 0.4rem 0;
+  font-size: 0.95rem;
+  color: #444;
+  line-height: 1.2rem;
+}
+
+.commentSection strong {
+  color: #5F6F65;
+}
