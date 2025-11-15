@@ -407,3 +407,31 @@ hr {
   font-size: 0.95rem;
   line-height: 1.3rem;
 }
+
+.searchWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.autocomplete-box {
+  position: absolute;
+  top: 35px;
+  left: 0;
+  width: 100%;
+  background: white;
+  border: 1px solid #ccc;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 9999;
+  border-radius: 4px;
+}
+
+.autocomplete-item {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.autocomplete-item:hover {
+  background: #eee;
+}
+

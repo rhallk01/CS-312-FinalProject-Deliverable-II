@@ -60,88 +60,11 @@ let currentUserId;
 let currentUserName; 
 
 //function to get posts  
-async function getPosts() {
-  const result = await db.query("SELECT * FROM recipes");
-
-  const posts = result.rows.map((post) => ({
-    name: post.creator_name,
-    title: post.title,
-    content: post.body,
-    time: post.time_updated,
-    initTime: post.date_created,
-    id: post.recipe_id,
-    tag: post.tag,
-    creator_id: post.creator_user_id,
-    cook_time: post.cook_time,
-    ingredients: post.ingredients,
-    difficulty: post.difficulty,
-    image_path: post.image_path,
-    mealType: post.mealtype,
-    cuisineTag: post.cuisinetag,
-    notes: post.notes,
-    avg_rating: post.avg_rating,
-    num_reviews: post.num_reviews
-  }));
-  return posts;
-}
-
-
-//standard home page render, send recipe post, tags list, and current page
-app.get("/", async (req, res) => {
-  const { search, cuisine, tag, mealType, minTime, maxTime, difficulty, minRating } = req.query;
-
-  let query = "SELECT * FROM recipes WHERE 1=1";
-  const params = [];
-
-  if (search) {
-    params.push(`%${search.toLowerCase()}%`);
-    query += ` AND (
-      LOWER(title) LIKE $${params.length} OR
-      LOWER(ingredients) LIKE $${params.length} OR
-      LOWER(body) LIKE $${params.length}
-    )`;
-  }
-
-  if (cuisine && cuisine !== "all") {
-    params.push(cuisine.toLowerCase());
-    query += ` AND LOWER(cuisinetag) = $${params.length}`;
-  }
-
-  if (tag && tag !== "all") {
-    params.push(tag.toLowerCase());
-    query += ` AND LOWER(tag) = $${params.length}`;
-  }
-
-  if (mealType && mealType !== "all") {
-    params.push(mealType.toLowerCase());
-    query += ` AND LOWER(mealtype) = $${params.length}`;
-  }
-
-  if (minTime) {
-    params.push(parseInt(minTime));
-    query += ` AND cook_time >= $${params.length}`;
-  }
-
-  if (maxTime) {
-    params.push(parseInt(maxTime));
-    query += ` AND cook_time <= $${params.length}`;
-  }
-
-  if (difficulty) {
-    params.push(parseInt(difficulty));
-    query += ` AND difficulty = $${params.length}`;
-  }
-
-  if (minRating) {
-    params.push(parseFloat(minRating));
-    query += ` AND avg_rating >= $${params.length}`;
-  }
-
-  const result = await db.query(query, params);
-
+async function getPosts(rows) {
+  // get all ratings/comments once
   const ratingResults = await db.query(`
-      SELECT recipe_id, user_id, rating, comment
-      FROM recipe_ratings
+    SELECT recipe_id, user_id, rating, comment
+    FROM recipe_ratings
   `);
 
   const commentsMap = {};
@@ -150,8 +73,8 @@ app.get("/", async (req, res) => {
     commentsMap[r.recipe_id].push(r);
   });
 
-
-  const allPosts = result.rows.map((post) => ({
+  // map raw rows to posts with comments
+  return rows.map(post => ({
     name: post.creator_name,
     title: post.title,
     content: post.body,
@@ -171,7 +94,76 @@ app.get("/", async (req, res) => {
     num_reviews: post.num_reviews,
     comments: commentsMap[post.recipe_id] || []
   }));
+}
 
+
+
+// home page render with tags, send recipe post, tags list, and current page
+app.get("/", async (req, res) => {
+  //get query params for filtering
+  const { search, cuisine, tag, mealType, minTime, maxTime, difficulty, minRating } = req.query;
+
+  //write query based on filters
+  let query = "SELECT * FROM recipes WHERE 1=1";
+  const params = [];
+
+  // Aadd search filter
+  if (search) {
+    params.push(`%${search.toLowerCase()}%`);
+    query += ` AND (
+      LOWER(title) LIKE $${params.length} OR
+      LOWER(ingredients) LIKE $${params.length} OR
+      LOWER(body) LIKE $${params.length}
+    )`;
+  }
+
+  // add cuisine filter
+  if (cuisine && cuisine !== "all") {
+    params.push(cuisine.toLowerCase());
+    query += ` AND LOWER(cuisinetag) = $${params.length}`;
+  }
+
+  //add tag filter
+  if (tag && tag !== "all") {
+    params.push(tag.toLowerCase());
+    query += ` AND LOWER(tag) = $${params.length}`;
+  }
+
+  //add meal type filter
+  if (mealType && mealType !== "all") {
+    params.push(mealType.toLowerCase());
+    query += ` AND LOWER(mealtype) = $${params.length}`;
+  }
+
+  //add time and difficulty filters
+  if (minTime) {
+    params.push(parseInt(minTime));
+    query += ` AND cook_time >= $${params.length}`;
+  }
+
+  if (maxTime) {
+    params.push(parseInt(maxTime));
+    query += ` AND cook_time <= $${params.length}`;
+  }
+
+  if (difficulty) {
+    params.push(parseInt(difficulty));
+    query += ` AND difficulty = $${params.length}`;
+  }
+
+  //add minimum rating filter
+  if (minRating) {
+    params.push(parseFloat(minRating));
+    query += ` AND avg_rating >= $${params.length}`;
+  }
+
+  //query the database with the query and parameters
+  const result = await db.query(query, params);
+
+  // use getPosts to normalize and attach comments/ratings
+  const allPosts = await getPosts(result.rows);
+
+  //render the index page with the posts and tags
   res.render("index.ejs", {
     allPosts,
     tags,
@@ -319,32 +311,6 @@ app.post('/submitPost', upload.single('image'), async (req, res) => {
     return res.redirect('/');
 });
 
-/*
-//if the user chooses tags from the dropdowns to sort by and clicks the
-//filter button, show only correctly tagged posts on home page
-app.post("/tagSort", async (req, res) => {
-  //get tags from request, if all show all recipe posts
-  const { tag, cuisineTag, mealType } = req.body;
-  const allPosts = await getPosts();
-
-  // filter by tags
-  let filtered = allPosts.filter(p => {
-    const matchesTag = tag === "all" || p.tag?.toLowerCase() === tag.toLowerCase();
-    const matchesCuisine = cuisineTag === "all" || p.cuisineTag?.toLowerCase() === cuisineTag.toLowerCase();
-    const matchesMeal = mealType === "all" || p.mealType?.toLowerCase() === mealType.toLowerCase();
-    return matchesTag && matchesCuisine && matchesMeal;
-  });
-
-  //render home page with filtered posts 'taggedPosts' as tags
-  res.render("index.ejs", {
-    allPosts: filtered,
-    tags,
-    cuisineTypeTags,
-    mealTypeTags,
-    currentPage: "index"
-  });
-});*/
-
 //save recipe to profile
 app.post("/saveRecipe", async (req, res) => {
   //if not logged in, redirect to login
@@ -462,24 +428,25 @@ app.post("/addToCollection", async (req, res) => {
 
 //////////////////////////////////////////////////////////////////////////
 
-// Submit rating & comment
+// submit rating & comment
 app.post("/rateRecipe", async (req, res) => {
+  // if not logged in, redirect to login
   if (!currentUserId) return res.redirect("/login");
 
+  // get and parse inputs
   const { recipe_id, rating, comment } = req.body;
-
   const recipeId = parseInt(recipe_id);
   const parsedRating = parseInt(rating);
 
   try {
-    // Insert new rating
+    // insert new rating
     await db.query(
       `INSERT INTO recipe_ratings (recipe_id, user_id, rating, comment)
        VALUES ($1, $2, $3, $4)`,
       [recipeId, currentUserId, parsedRating, comment]
     );
 
-    // Recalculate avg rating + review count
+    // recalculate avg rating and review count
     const newStats = await db.query(
       `SELECT 
          AVG(rating)::float AS avg_rating,
@@ -489,10 +456,11 @@ app.post("/rateRecipe", async (req, res) => {
       [recipeId]
     );
 
+    // get new avg and count
     const avg = newStats.rows[0].avg_rating || 0;
     const count = newStats.rows[0].num_reviews || 0;
 
-    // Update recipes table
+    // update recipes table
     await db.query(
       `UPDATE recipes
        SET avg_rating = $1, num_reviews = $2
@@ -500,6 +468,7 @@ app.post("/rateRecipe", async (req, res) => {
       [avg, count, recipeId]
     );
 
+    // redirect back to home
     res.redirect("/");
   } catch (err) {
     console.error("Rating error:", err);
@@ -507,18 +476,38 @@ app.post("/rateRecipe", async (req, res) => {
   }
 });
 
+// autocomplete route
+app.get("/autocomplete", async (req, res) => {
+  //get the query param from the request
+  const { query } = req.query;
 
+  // if nothing entered, return empty list
+  if (!query || query.trim() === "") {
+    return res.json([]);
+  }
 
+  //search for titles or ingredients that match the query
+  try {
+    //use lowercase for case insensitive search
+    const search = `%${query.toLowerCase()}%`;
 
+    //query db for matching titles or ingredients
+    const result = await db.query(
+      `SELECT recipe_id, title 
+       FROM recipes
+       WHERE LOWER(title) LIKE $1
+          OR LOWER(ingredients) LIKE $1
+       LIMIT 10`,
+      [search]
+    );
 
-
-
-
-
-
-
-
-
+    //return results as json
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Autocomplete error:", err);
+    res.status(500).json([]);
+  }
+});
 
 
 
