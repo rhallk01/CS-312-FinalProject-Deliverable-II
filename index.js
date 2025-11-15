@@ -17,7 +17,7 @@ const db = new pg.Client({
   user: "postgres",
   host: "localhost",
   database: "RecipeDB",
-  password: "#Hammer25!",
+  password: "darkgreyseaslug1234",
   port: 5432,
 });
 db.connect();
@@ -26,8 +26,6 @@ db.connect();
 app.use(express.static("public"));
 //parse data that is recieved
 app.use(bodyParser.urlencoded({ extended: true }));
-
-
 app.use(methodOverride(function (req, res) {
     if (req.body && typeof req.body === 'object' && '_method' in req.body) {
       // look in urlencoded POST bodies and delete it
@@ -80,16 +78,109 @@ async function getPosts() {
     image_path: post.image_path,
     mealType: post.mealtype,
     cuisineTag: post.cuisinetag,
-    notes: post.notes
+    notes: post.notes,
+    avg_rating: post.avg_rating,
+    num_reviews: post.num_reviews
   }));
   return posts;
 }
 
+
 //standard home page render, send recipe post, tags list, and current page
 app.get("/", async (req, res) => {
-  var allPosts = await getPosts();
-  //const currentUser = await getCurrentUser();
-  res.render("index.ejs", {allPosts: allPosts, tags:tags, mealTypeTags:mealTypeTags, cuisineTypeTags:cuisineTypeTags, currentPage: 'index', currentUserId: currentUserId});
+  const { search, cuisine, tag, mealType, minTime, maxTime, difficulty, minRating } = req.query;
+
+  let query = "SELECT * FROM recipes WHERE 1=1";
+  const params = [];
+
+  if (search) {
+    params.push(`%${search.toLowerCase()}%`);
+    query += ` AND (
+      LOWER(title) LIKE $${params.length} OR
+      LOWER(ingredients) LIKE $${params.length} OR
+      LOWER(body) LIKE $${params.length}
+    )`;
+  }
+
+  if (cuisine && cuisine !== "all") {
+    params.push(cuisine.toLowerCase());
+    query += ` AND LOWER(cuisinetag) = $${params.length}`;
+  }
+
+  if (tag && tag !== "all") {
+    params.push(tag.toLowerCase());
+    query += ` AND LOWER(tag) = $${params.length}`;
+  }
+
+  if (mealType && mealType !== "all") {
+    params.push(mealType.toLowerCase());
+    query += ` AND LOWER(mealtype) = $${params.length}`;
+  }
+
+  if (minTime) {
+    params.push(parseInt(minTime));
+    query += ` AND cook_time >= $${params.length}`;
+  }
+
+  if (maxTime) {
+    params.push(parseInt(maxTime));
+    query += ` AND cook_time <= $${params.length}`;
+  }
+
+  if (difficulty) {
+    params.push(parseInt(difficulty));
+    query += ` AND difficulty = $${params.length}`;
+  }
+
+  if (minRating) {
+    params.push(parseFloat(minRating));
+    query += ` AND avg_rating >= $${params.length}`;
+  }
+
+  const result = await db.query(query, params);
+
+  const ratingResults = await db.query(`
+      SELECT recipe_id, user_id, rating, comment
+      FROM recipe_ratings
+  `);
+
+  const commentsMap = {};
+  ratingResults.rows.forEach(r => {
+    if (!commentsMap[r.recipe_id]) commentsMap[r.recipe_id] = [];
+    commentsMap[r.recipe_id].push(r);
+  });
+
+
+  const allPosts = result.rows.map((post) => ({
+    name: post.creator_name,
+    title: post.title,
+    content: post.body,
+    time: post.time_updated,
+    initTime: post.date_created,
+    id: post.recipe_id,
+    tag: post.tag,
+    creator_id: post.creator_user_id,
+    cook_time: post.cook_time,
+    ingredients: post.ingredients,
+    difficulty: post.difficulty,
+    image_path: post.image_path,
+    mealType: post.mealtype,
+    cuisineTag: post.cuisinetag,
+    notes: post.notes,
+    avg_rating: post.avg_rating,
+    num_reviews: post.num_reviews,
+    comments: commentsMap[post.recipe_id] || []
+  }));
+
+  res.render("index.ejs", {
+    allPosts,
+    tags,
+    cuisineTypeTags,
+    mealTypeTags,
+    currentUserId,
+    currentPage: "index",
+    minRating
+  });
 });
 
 //render login page  
@@ -228,6 +319,7 @@ app.post('/submitPost', upload.single('image'), async (req, res) => {
     return res.redirect('/');
 });
 
+/*
 //if the user chooses tags from the dropdowns to sort by and clicks the
 //filter button, show only correctly tagged posts on home page
 app.post("/tagSort", async (req, res) => {
@@ -251,7 +343,7 @@ app.post("/tagSort", async (req, res) => {
     mealTypeTags,
     currentPage: "index"
   });
-});
+});*/
 
 //save recipe to profile
 app.post("/saveRecipe", async (req, res) => {
@@ -366,6 +458,68 @@ app.post("/addToCollection", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
+
+//////////////////////////////////////////////////////////////////////////
+
+// Submit rating & comment
+app.post("/rateRecipe", async (req, res) => {
+  if (!currentUserId) return res.redirect("/login");
+
+  const { recipe_id, rating, comment } = req.body;
+
+  const recipeId = parseInt(recipe_id);
+  const parsedRating = parseInt(rating);
+
+  try {
+    // Insert new rating
+    await db.query(
+      `INSERT INTO recipe_ratings (recipe_id, user_id, rating, comment)
+       VALUES ($1, $2, $3, $4)`,
+      [recipeId, currentUserId, parsedRating, comment]
+    );
+
+    // Recalculate avg rating + review count
+    const newStats = await db.query(
+      `SELECT 
+         AVG(rating)::float AS avg_rating,
+         COUNT(*) AS num_reviews
+       FROM recipe_ratings
+       WHERE recipe_id = $1`,
+      [recipeId]
+    );
+
+    const avg = newStats.rows[0].avg_rating || 0;
+    const count = newStats.rows[0].num_reviews || 0;
+
+    // Update recipes table
+    await db.query(
+      `UPDATE recipes
+       SET avg_rating = $1, num_reviews = $2
+       WHERE recipe_id = $3`,
+      [avg, count, recipeId]
+    );
+
+    res.redirect("/");
+  } catch (err) {
+    console.error("Rating error:", err);
+    res.status(500).send("Failed to submit rating");
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 //start the Express server

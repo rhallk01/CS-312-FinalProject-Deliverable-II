@@ -3,6 +3,7 @@
 
 <body>   
 <!-- Recipe Posts -->
+
 <h1 class="makeAPost">Recipe Posts</h1>
     <div class="RecipePostDiv">
 
@@ -87,6 +88,47 @@
                 <h4>Notes</h4>
                 <p><%= allPosts[i].notes %></p>
             </div>
+
+            <div class="statsRow">
+                <p>Cook Time: <%= allPosts[i].cook_time %> min</p>
+                <p>Difficulty: <%= allPosts[i].difficulty %> / 5</p>
+
+                <% if (allPosts[i].avg_rating) { %>
+                    <p>Rating: <%= allPosts[i].avg_rating.toFixed(1) %>
+                    (<%= allPosts[i].num_reviews %> reviews)</p>
+                <% } else { %>
+                    <p>No ratings yet</p>
+                <% } %>
+            </div>
+
+            <br>
+            <% if (currentUserId) { %>
+            <form action="/rateRecipe" method="POST" class="ratingForm">
+                <input type="hidden" name="recipe_id" value="<%= allPosts[i].id %>">
+
+                <label>Rate this recipe:</label>
+                <select name="rating" required>
+                <option value="">Choose</option>
+                <% for (let r = 1; r <= 5; r++) { %>
+                    <option value="<%= r %>"><%= r %></option>
+                <% } %>
+                </select>
+
+                <textarea name="comment" placeholder="Leave a comment (optional)" rows="2" style="margin-left: 40px;"></textarea>
+
+                <button type="submit" class="saveBtn">Submit Rating</button>
+            </form>
+            <% } %>
+
+            <% if (allPosts[i].comments && allPosts[i].comments.length > 0) { %>
+            <div class="commentSection">
+                <h4>Comments</h4>
+                <% allPosts[i].comments.forEach(c => { %>
+                <p><strong><%= c.user_id %></strong>: <%= c.comment %> (<%= c.rating %>)</p><br>
+                <% }) %>
+            </div>
+            <% } %>
+
             <% } %>
         </div>
         <% } } %>

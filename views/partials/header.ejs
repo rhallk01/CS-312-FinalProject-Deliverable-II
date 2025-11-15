@@ -24,8 +24,10 @@
     <a href="/profile">Profile</a>
     <!-- if on the home page, put the tags dropdown in the banner -->
     <!-- the if statement checks whether a variable called currentPage was passed-->
+
     <% if (locals.currentPage) { %>
-        <form action="/tagSort" method="POST" class="filterForm">
+    <form action="/" method="GET" class="filterForm">
+
         <div class="dropdown">
             <label for="tag">Dietary Tag:</label>
             <select name="tag" id="tag">
@@ -38,7 +40,7 @@
 
         <div class="dropdown">
             <label for="cuisineTag">Cuisine:</label>
-            <select name="cuisineTag" id="cuisineTag">
+            <select name="cuisine" id="cuisine">
             <option value="all">All</option>
             <% cuisineTypeTags.forEach(function(cuisineTag) { %>
                 <option value="<%= cuisineTag %>"><%= cuisineTag %></option>
@@ -56,8 +58,34 @@
             </select>
         </div>
 
-        <input class="selectorSubmit" type="submit" value="Filter">
+        <label for="minRating">Min Rating:</label>
+        <select name="minRating" id="minRating">
+        <option value="">Any</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        </select>
+
+        <label for="difficulty">Difficulty:</label>
+        <select name="difficulty">
+            <option value="">All</option>
+            <% for (let i = 1; i <= 5; i++) { %>
+            <option value="<%= i %>"><%= i %></option>
+            <% } %>
+        </select>
+        
+        <input type="number" name="minTime" placeholder="Min time (min)">
+        <input type="number" name="maxTime" placeholder="Max time (min)">
+        
+        <input type="text" name="search" placeholder="Search keyword/ingredient">
+
+        <button type="submit">Filter</button>
         </form>
+
+
+
     <% } %>
 
 </nav>
